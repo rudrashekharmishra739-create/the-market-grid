@@ -7,8 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Allura&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--navy:#0e2231;--navy-2:#0b1d2a;--teal:#2edcb5;--teal-dark:#14b894;--cream:#fdf8f0;--bg:#fffdf8;--ink:#10222f;--muted:#5d6f7a;--card-border:#f0e9dc;--mint:#eef5f1;--flip:#2874f0}
@@ -206,7 +205,7 @@ footer{background:var(--navy-2);color:#d7e0e6}
 <div class="logo" onclick="showPage('home')"><div class="logo-mark"><span class="t">T</span><span>V</span><span class="t">G</span></div><div class="logo-text"><b>THE MARKET GRID</b><small>CURATED FOR YOU</small></div></div>
 <div class="hsearch"><input id="headSearch" placeholder="Search gown, watch, rado, ML144..."><button onclick="doSearch(true)">🔍</button></div>
 <div class="links"><a data-nav="home" class="active">Home</a><a data-nav="shop">Shop</a><a data-nav="about">About</a><a data-nav="support">Support</a></div>
-<div class="icons"><a id="searchBtn" title="Search"><i class="fa-regular fa-magnifying-glass"></i></a><button class="acct-btn" id="acctBtn" onclick="openAuth()"><span class="acct-av" id="acctAv">👤</span><span id="acctName">Login</span></button><a id="cartBtn" title="Cart"><i class="fa-regular fa-cart-shopping"></i><span class="cart-count" id="cartCount">0</span></a><button class="hamburger" id="menuBtn"><i class="fa-solid fa-bars"></i></button></div>
+<div class="icons"><a id="searchBtn" title="Search"><i class="fa-regular fa-magnifying-glass"></i></a><a id="cartBtn" title="Cart"><i class="fa-regular fa-cart-shopping"></i><span class="cart-count" id="cartCount">0</span></a><button class="hamburger" id="menuBtn"><i class="fa-solid fa-bars"></i></button></div>
 </nav>
 </header>
 
@@ -280,15 +279,8 @@ footer{background:var(--navy-2);color:#d7e0e6}
 
 <div class="sdrop" id="sdrop"></div>
 <div class="overlay" id="overlay"></div>
-<aside class="drawer" id="drawer"><div class="drawer-head"><span>Your Cart (<span id="cartN">0</span>) 🛒</span><button id="closeDrawer" style="border:0;background:none;font-size:18px;cursor:pointer">✕</button></div><div class="drawer-items" id="cartItems"></div><div class="drawer-foot"><div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:#555"><span>Delivery</span><span style="color:#388e3c;font-weight:700">FREE</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;font-weight:800"><span>Total</span><span id="cartTotal">₹ 0</span></div><button class="checkout" onclick="startCheckout()">Proceed to Payment →</button><div style="text-align:center;font-size:11px;color:#777;margin-top:6px">UPI • GPay • PhonePe • Paytm • Cards • COD</div></div></aside>
+<aside class="drawer" id="drawer"><div class="drawer-head"><span>Your Cart (<span id="cartN">0</span>) 🛒</span><button id="closeDrawer" style="border:0;background:none;font-size:18px;cursor:pointer">✕</button></div><div class="drawer-items" id="cartItems"></div><div class="drawer-foot"><div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:13px;color:#555"><span>Delivery</span><span style="color:#388e3c;font-weight:700">FREE</span></div><div style="display:flex;justify-content:space-between;margin-bottom:10px;font-weight:800"><span>Total</span><span id="cartTotal">₹ 0</span></div><button class="checkout" onclick="startCheckout()">Proceed to Payment →</button><div style="text-align:center;font-size:11px;color:#777;margin-top:6px">UPI QR Scan • COD</div></div></aside>
 <div class="searchbox" id="searchBox"><input id="searchInput" placeholder="Search gown, watch, rado, ML144..."></div>
-
-<!-- AUTH MODAL -->
-<div class="modal" id="authModal"><div class="modal-card">
-<div class="modal-head"><span>👤 Account Login</span><button onclick="closeModal('authModal')" style="border:0;background:none;font-size:18px;cursor:pointer">✕</button></div>
-<div class="modal-body" id="authBody"></div>
-<div id="recaptcha-box"></div>
-</div></div>
 
 <!-- SHARE MODAL -->
 <div class="modal" id="shareModal"><div class="modal-card" style="animation:popIn .3s ease">
@@ -515,230 +507,78 @@ document.getElementById('searchInput').addEventListener('input',e=>{
  doSearch(false);
 });
 
-/* ===== ACCOUNT LOGIN — real Mobile OTP + Email verification (Firebase, free) =====
-   ONE-TIME SETUP (~5 min) to activate real SMS:
-   1. https://console.firebase.google.com → Add project "the-market-grid" (skip Analytics)
-   2. Build → Authentication → Get started → Sign-in method → Enable "Phone" AND "Email/Passwordless (Email link)"
-   3. Authentication → Settings → Authorized domains → Add: rudrashekharmishra739-create.github.io
-   4. Project Overview → Add Web app (</>) → copy apiKey / authDomain / projectId / appId below
-*/
-const FIREBASE_CONFIG = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  appId: "PASTE_YOUR_APP_ID"
-};
-let user=null, confirmRes=null, authTab='mobile', fbAuth=null, fbConfigured=false;
-try{user=JSON.parse(localStorage.getItem('tmg_user')||'null');if(user&&!user.verified)user=null;cart=JSON.parse(localStorage.getItem('tmg_cart')||'[]');cart=cart.filter(c=>c&&typeof c.qty==='number').map(c=>c.pid?c:{pid:1,vid:c.vid||0,size:c.size||'XL',qty:c.qty});}catch(e){cart=[];}
-try{
- if(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('PASTE')!==0){
-  firebase.initializeApp(FIREBASE_CONFIG);
-  fbAuth=firebase.auth();
-  fbConfigured=true;
-  fbAuth.onAuthStateChanged(fb=>{
-   if(!fb) return;
-   const ph=fb.phoneNumber?String(fb.phoneNumber).replace('+91',''):null;
-   if(user&&user.verified&&((ph&&user.phone===ph)||(fb.email&&user.email===fb.email))) return;
-   const saved=localStorage.getItem('tmg_name')||(fb.displayName||'');
-   if(ph) finishLogin({phone:ph,email:null},saved);
-   else if(fb.email) finishLogin({phone:null,email:fb.email},saved);
-  });
-  finishEmailLinkSignIn();
- }
-}catch(e){fbConfigured=false;}
-function openAuth(){renderAuth();document.getElementById('authModal').classList.add('show');}
+/* ===== NO LOGIN - customer gives name, phone, address at checkout =====
+   Flow: Proceed to Payment -> enter Name + Phone + Address (all validated)
+   -> scan shop QR and pay from YOUR OWN number -> number shows in our BHIM
+   history -> we match the order by phone number -> ship to your address. */
+try{cart=JSON.parse(localStorage.getItem('tmg_cart')||'[]');cart=cart.filter(c=>c&&typeof c.qty==='number').map(c=>c.pid?c:{pid:1,vid:c.vid||0,size:c.size||'XL',qty:c.qty});}catch(e){cart=[];}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
-function setAuthTab(t){authTab=t;renderAuth();}
-function renderAuth(){
- const b=document.getElementById('authBody');
- const orders=JSON.parse(localStorage.getItem('tmg_orders')||'[]');
- if(user&&user.verified){
-  const contact=user.phone?('+91 '+user.phone):(user.email||'');
-  const initial=(user.name||contact||'U')[0].toUpperCase();
-  b.innerHTML=`<div style="text-align:center;padding:6px"><div style="width:56px;height:56px;border-radius:50%;background:#0b1d2a;color:#2edcb5;font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto">${initial}</div><h3 style="margin:8px 0 2px">${user.name||'My Account'}</h3><div style="color:#388e3c;font-size:12.5px;font-weight:700">✓ Verified</div><div style="color:#666;font-size:13px">${contact}</div></div>
-  <h4 style="margin:12px 0 6px">My Orders (${orders.length})</h4>${orders.length?orders.slice().reverse().map(o=>`<div style="border:1px solid #eee;border-radius:10px;padding:10px;margin:6px 0;font-size:12.5px"><b>${o.id}</b> — ${o.items} item(s) — ${fmt(o.total)}<br><span style="color:#388e3c;font-weight:700">${o.pay}</span> • ${o.date}</div>`).join(''):'<p style="font-size:13px;color:#666">No orders yet.</p>'}
-  <button class="btn-full" style="background:#fee2e2;color:#991b1b;margin-top:12px" onclick="logout()">Logout</button>`;
- }else if(!fbConfigured){
-  b.innerHTML=`<h4>🔧 One-time login setup</h4><p style="font-size:13px;color:#555;line-height:1.7">Real SMS + email verification needs a free Firebase key (takes ~5 min):<br><br>1. <b>console.firebase.google.com</b> → new project<br>2. Authentication → enable <b>Phone</b> + <b>Email link</b><br>3. Authorized domains → add <b>rudrashekharmishra739-create.github.io</b><br>4. Paste keys into <b>FIREBASE_CONFIG</b> in index.html</p>`;
- }else if(authTab==='mobile'){
-  b.innerHTML=`<div class="atabs"><button class="atab on" onclick="setAuthTab('mobile')">📱 Mobile</button><button class="atab" onclick="setAuthTab('email')">✉️ Email</button></div>
-  <p style="font-size:13px;color:#555">Login with your mobile number — we send a real 6-digit SMS code.</p>
-  <input class="field" id="aPhone" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric">
-  <button class="btn-full" style="background:#0b1d2a;color:#fff" onclick="sendPhoneOTP()">Send OTP →</button>
-  <div id="otpBox" style="display:none"><p style="font-size:12px;color:#555;margin:8px 0 0">Code sent to <b id="otpPhone"></b></p><input class="field" id="aOTP" placeholder="Enter 6-digit OTP" maxlength="6" inputmode="numeric"><button class="btn-full" style="background:#2edcb5;color:#07332a" onclick="verifyPhoneOTP()">Verify & Login</button></div>`;
- }else{
-  b.innerHTML=`<div class="atabs"><button class="atab" onclick="setAuthTab('mobile')">📱 Mobile</button><button class="atab on" onclick="setAuthTab('email')">✉️ Email</button></div>
-  <p style="font-size:13px;color:#555">Login with email — we send a secure sign-in link (tap it to log in).</p>
-  <input class="field" id="aEmail" placeholder="you@example.com" inputmode="email">
-  <button class="btn-full" style="background:#0b1d2a;color:#fff" onclick="sendEmailLink()">Send Sign-in Link →</button>
-  <div id="emailSent" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:10px;font-size:12.5px;margin-top:8px">Link sent to <b id="emailSentAddr"></b> — open your inbox and tap it. Then come back here.</div>`;
- }
- updateAcctBtn();
-}
-function ensureRecaptcha(){
- if(!window._recap){window._recap=new firebase.auth.RecaptchaVerifier('recaptcha-box',{size:'invisible'});}
- return window._recap;
-}
-async function sendPhoneOTP(){
- const ph=document.getElementById('aPhone').value.trim();
- if(!/^[6-9]\d{9}$/.test(ph)) return toast('Enter valid 10-digit mobile');
- try{
-  toast('Sending SMS...');
-  confirmRes=await fbAuth.signInWithPhoneNumber('+91'+ph,ensureRecaptcha());
-  confirmRes._phone=ph;
-  document.getElementById('otpBox').style.display='block';
-  document.getElementById('otpPhone').textContent='+91 '+ph;
-  toast('OTP sent by SMS ✓');
- }catch(e){toast('Could not send SMS: '+((e&&e.message)||'error'));try{if(window._recap){window._recap.clear();window._recap=null;}}catch(e2){}}
-}
-async function verifyPhoneOTP(){
- const code=document.getElementById('aOTP').value.trim();
- if(code.length<6) return toast('Enter the 6-digit code');
- try{await confirmRes.confirm(code);finishLogin({phone:confirmRes._phone,email:null});}
- catch(e){toast('Wrong or expired code — try again');}
-}
-async function sendEmailLink(){
- const em=document.getElementById('aEmail').value.trim().toLowerCase();
- if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return toast('Enter a valid email');
- try{
-  await fbAuth.sendSignInLinkToEmail(em,{url:location.href.split('#')[0],handleCodeInApp:true});
-  localStorage.setItem('tmg_email',em);
-  document.getElementById('emailSent').style.display='block';
-  document.getElementById('emailSentAddr').textContent=em;
-  toast('Sign-in link sent ✓');
- }catch(e){toast('Could not send email: '+((e&&e.message)||'error'));}
-}
-async function finishEmailLinkSignIn(){
- try{
-  if(!fbAuth.isSignInWithEmailLink(location.href)) return;
-  let em=localStorage.getItem('tmg_email')||'';
-  if(!em){em=prompt('Confirm your email to finish sign-in:')||'';}
-  if(!em) return;
-  await fbAuth.signInWithEmailLink(em,location.href);
-  localStorage.removeItem('tmg_email');
-  try{const u=new URL(location.href);const p=u.searchParams.get('product');history.replaceState(null,'',p?('?product='+p):location.pathname);}catch(e2){}
-  finishLogin({phone:null,email:em});
- }catch(e){toast('Email link expired — request a new one');}
-}
-function finishLogin(contact,knownName){
- const saved=knownName||localStorage.getItem('tmg_name')||'';
- user={name:saved,phone:contact.phone||null,email:contact.email||null,verified:true};
- localStorage.setItem('tmg_user',JSON.stringify(user));
- if(!saved){renderNameStep();}
- else{renderAuth();toast('Welcome'+(saved?', '+saved:'')+' ✓');}
- updateAcctBtn();
-}
-function renderNameStep(){
- document.getElementById('authBody').innerHTML=`<h4>Almost done 🎉</h4><p style="font-size:13px;color:#555">Your ${user.phone?'number':'email'} is verified. Tell us your name for orders:</p><input class="field" id="aName" placeholder="Your name"><button class="btn-full" style="background:#2edcb5;color:#07332a" onclick="saveLoginName()">Save & Continue →</button>`;
-}
-function saveLoginName(){
- const n=document.getElementById('aName').value.trim();
- if(n.length<2) return toast('Enter your name');
- user.name=n;localStorage.setItem('tmg_name',n);localStorage.setItem('tmg_user',JSON.stringify(user));
- try{if(fbAuth&&fbAuth.currentUser)fbAuth.currentUser.updateProfile({displayName:n});}catch(e){}
- renderAuth();toast('Welcome, '+n+' ✓');
-}
-function logout(){try{if(fbAuth)fbAuth.signOut();}catch(e){}user=null;localStorage.removeItem('tmg_user');renderAuth();}
-function updateAcctBtn(){
- const short=(user&&user.verified)?((user.name||'').split(' ')[0]||'Hi'):'Login';
- document.getElementById('acctName').textContent=short;
- document.getElementById('acctAv').textContent=(user&&user.verified)?(((user.name||user.email||user.phone||'U'))[0].toUpperCase()):'👤';
-}
-
 /* ===== FULL PAYMENT SYSTEM (UPI + Cards + COD) ===== */
-const MERCHANT_UPI="themarketgrid@upi"; // ← change to Manibhaiya's real UPI ID to receive money
-const MERCHANT_NAME="THE MARKET GRID";
+const MERCHANT_NAME="THE MARKET GRID"; // payments go to the shop QR (images/QR CODE.jpeg)
 let payStep=1, payMethod='upi', addr={name:'',phone:'',pin:'',addr:''}, upiId='';
 try{const a=JSON.parse(localStorage.getItem('tmg_addr')||'null');if(a)addr=a;}catch(e){}
 function startCheckout(){
  if(!cart.length) return toast('Cart is empty — add an item first 🛒');
  closeDrawer();
- if(!user||!user.verified){openAuth();toast('Please login first to pay');return;}
- payStep=1;document.getElementById('payModal').classList.add('show');renderPay();
+ payStep=1;payMethod='upi';document.getElementById('payModal').classList.add('show');renderPay();
 }
 function setStep(n){payStep=n;renderPay();}
-function upiLink(app){
- const amt=cartTotal();
- const tn=encodeURIComponent('TMG order '+cart.map(c=>P(c.pid).article).join('+'));
- const base=`pa=${MERCHANT_UPI}&pn=${encodeURIComponent(MERCHANT_NAME)}&am=${amt}&cu=INR&tn=${tn}`;
- if(app==='phonepe') return `phonepe://pay?${base}`;
- if(app==='paytm') return `paytmmp://pay?${base}`;
- if(app==='bhim') return `bhim://pay?${base}`;
- if(app==='amazon') return `amazonpay://pay?${base}`;
- if(app==='gpay') return `tez://upi/pay?${base}`;
- return `upi://pay?${base}`;
-}
 function renderPay(){
  ['st1','st2','st3'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',payStep===i+1));
  const B=document.getElementById('payBody');
  const total=cartTotal();
- if(payStep===1){
-  B.innerHTML=`<h4>Delivery Address (Surat / All India)</h4>
-  <input class="field" id="fName" placeholder="Full name" value="${addr.name||(user?.name||'')}">
-  <input class="field" id="fPhone" placeholder="Mobile" value="${addr.phone||(user?.phone||'')}" maxlength="10">
-  <input class="field" id="fPin" placeholder="Pincode" value="${addr.pin||''}" maxlength="6">
-  <textarea class="field" id="fAddr" placeholder="House no, street, city, state">${addr.addr||''}</textarea>
-  <div style="background:#f8fafc;border:1px solid #e5e0d2;border-radius:10px;padding:10px;font-size:12.5px;margin:8px 0">${cart.map(c=>{const pr=P(c.pid);return `• ${pr.name} (${pr.variants[c.vid]?pr.variants[c.vid].name:''} / ${c.size}) × ${c.qty} — ${fmt(pr.price*c.qty)}`;}).join('<br>')}<br><b>Total payable: ${fmt(total)} (FREE delivery)</b></div>
-  <button class="btn-full" style="background:#0b1d2a;color:#fff" onclick="saveAddr()">Continue to Payment →</button>`;
- }
- if(payStep===2){
-  const qr=`images/QR CODE.jpeg`;
-  B.innerHTML=`<h4>Pay ${fmt(total)} — choose app</h4>
-  <p style="font-size:12px;color:#666">Payee: <b>${MERCHANT_UPI}</b> (${MERCHANT_NAME}). On mobile tap an app — it opens with amount filled. On PC scan QR with any UPI app.</p>
-  <div style="display:flex;gap:6px;margin:8px 0"><button class="btn-full ${payMethod==='upi'?'':' '}" style="background:${payMethod==='upi'?'#0b1d2a':'#eee'};color:${payMethod==='upi'?'#fff':'#111'}" onclick="payMethod='upi';renderPay()">UPI</button><button class="btn-full" style="background:${payMethod==='card'?'#0b1d2a':'#eee'};color:${payMethod==='card'?'#fff':'#111'}" onclick="payMethod='card';renderPay()">Card</button><button class="btn-full" style="background:${payMethod==='cod'?'#0b1d2a':'#eee'};color:${payMethod==='cod'?'#fff':'#111'}" onclick="payMethod='cod';renderPay()">COD</button></div>
-  ${payMethod==='upi'?`
-  <div class="pay-apps">
-   <div class="pay-app" onclick="payVia('gpay')"><div class="ic">🅖</div><b>Google Pay</b><small>tez://upi</small></div>
-   <div class="pay-app" onclick="payVia('phonepe')"><div class="ic">📱</div><b>PhonePe</b><small>phonepe://</small></div>
-   <div class="pay-app" onclick="payVia('paytm')"><div class="ic">💙</div><b>Paytm</b><small>paytmmp://</small></div>
-   <div class="pay-app" onclick="payVia('bhim')"><div class="ic">🇮🇳</div><b>BHIM UPI</b><small>bhim://</small></div>
-   <div class="pay-app" onclick="payVia('amazon')"><div class="ic">🅰</div><b>Amazon Pay</b><small>amazonpay://</small></div>
-   <div class="pay-app" onclick="payVia('upi')"><div class="ic">✨</div><b>Any UPI App</b><small>upi://</small></div>
-  </div>
-  <div style="display:flex;gap:14px;align-items:center;background:#f8fafc;border:1px solid #e5e0d2;border-radius:12px;padding:12px"><img src="${qr}" width="150" height="150" style="border-radius:8px;border:1px solid #ddd" alt="Shop UPI QR"><div style="font-size:12px">Scan with <b>GPay / PhonePe / Paytm / BHIM</b><br>Amount: <b>${fmt(total)}</b><br><span style="color:#666">Your shop QR — pay & tap confirm below</span></div></div>
-  <div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="upiId" placeholder="yourname@okhdfc / @ybl / @paytm" value="${upiId}" style="margin:0"><button class="btn-full" style="width:auto;background:#0b1d2a;color:#fff;padding:12px 18px" onclick="payVia('upi',true)">Collect</button></div>
-  <button class="btn-full" style="background:#2edcb5;color:#07332a;margin-top:10px" onclick="confirmPaid('UPI')">I Have Paid ✓ Confirm</button>
-  <button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back to address</button>`:''}
-  ${payMethod==='card'?`<input class="field" placeholder="Card number" inputmode="numeric"><div style="display:flex;gap:8px"><input class="field" placeholder="MM/YY"><input class="field" placeholder="CVV" type="password"></div><input class="field" placeholder="Name on card"><button class="btn-full" style="background:#2edcb5;color:#07332a" onclick="confirmPaid('Card')">Pay ${fmt(total)} →</button><button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back</button>`:''}
-  ${payMethod==='cod'?`<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:12px;font-size:13px">Cash on Delivery available. Pay cash when order arrives. Please keep token amount ready.</div><button class="btn-full" style="background:#0b1d2a;color:#fff;margin-top:10px" onclick="confirmPaid('COD')">Place COD Order →</button><button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back</button>`:''}
-  <p style="font-size:10.5px;color:#999;margin-top:10px">To receive real money, replace MERCHANT_UPI in code with your shop UPI ID. QR + all app buttons update automatically. For auto-verification, add Razorpay / Cashfree key later.</p>`;
- }
+  if(payStep===1){
+   B.innerHTML=`<h4>Step 1 — Your Details <span style="color:#c00">*</span></h4>
+   <p style="font-size:12px;color:#555;margin-bottom:4px">All fields are required and checked — we ship to this address and match your payment by your phone number.</p>
+   <label style="font-size:12px;font-weight:700">Full Name *</label>
+   <input class="field" id="fName" placeholder="e.g. Rahul Sharma" value="${addr.name||''}">
+   <label style="font-size:12px;font-weight:700">Mobile Number * <span style="font-weight:400;color:#666">(10-digit, payment must come from this number)</span></label>
+   <input class="field" id="fPhone" placeholder="e.g. 98765 43210" value="${addr.phone||''}" maxlength="10" inputmode="numeric">
+   <label style="font-size:12px;font-weight:700">Pincode *</label>
+   <input class="field" id="fPin" placeholder="e.g. 395001" value="${addr.pin||''}" maxlength="6" inputmode="numeric">
+   <label style="font-size:12px;font-weight:700">Full Delivery Address *</label>
+   <textarea class="field" id="fAddr" placeholder="House no, street, area, city, state">${addr.addr||''}</textarea>
+   <div style="background:#f8fafc;border:1px solid #e5e0d2;border-radius:10px;padding:10px;font-size:12.5px;margin:8px 0">${cart.map(c=>{const pr=P(c.pid);return `• ${pr.name} (${pr.variants[c.vid]?pr.variants[c.vid].name:''} / ${c.size}) × ${c.qty} — ${fmt(pr.price*c.qty)}`;}).join('<br>')}<br><b>Total payable: ${fmt(total)} (FREE delivery)</b></div>
+   <button class="btn-full" style="background:#0b1d2a;color:#fff" onclick="saveAddr()">Continue to Payment →</button>`;
+  }
+  if(payStep===2){
+   const qr=`images/QR CODE.jpeg`;
+   B.innerHTML=`<h4>Step 2 — Scan QR & Pay ${fmt(total)}</h4>
+   <div style="background:#f8fafc;border:1px solid #e5e0d2;border-radius:10px;padding:10px;font-size:12.5px;margin:8px 0">🚚 <b>${addr.name}</b> • +91 ${addr.phone}<br><span style="color:#555">${addr.addr}, ${addr.pin}</span></div>
+   <div class="note-mand">⚠️ <b>Pay from YOUR OWN mobile number (+91 ${addr.phone}).</b> Your number appears in our BHIM app history — that is how we match your order and ship it to your address.</div>
+   <div style="display:flex;gap:6px;margin:10px 0"><button class="btn-full" style="background:${payMethod==='upi'?'#0b1d2a':'#eee'};color:${payMethod==='upi'?'#fff':'#111'}" onclick="payMethod='upi';renderPay()">📷 UPI QR</button><button class="btn-full" style="background:${payMethod==='cod'?'#0b1d2a':'#eee'};color:${payMethod==='cod'?'#fff':'#111'}" onclick="payMethod='cod';renderPay()">💵 COD</button></div>
+   ${payMethod==='upi'?`
+   <div style="text-align:center;background:#fff;border:1px solid #e5e0d2;border-radius:12px;padding:14px"><img src="${qr}" width="200" height="200" style="border-radius:8px;border:1px solid #ddd;margin:0 auto" alt="Shop UPI QR"><div style="font-size:13px;margin-top:8px">Open <b>GPay / PhonePe / Paytm / BHIM</b>, scan & pay<br>Exact amount: <b style="font-size:16px">${fmt(total)}</b></div></div>
+   <input class="field" id="payFrom" placeholder="UPI ID / number you paid from (optional — helps us match faster)" value="">
+   <button class="btn-full" style="background:#2edcb5;color:#07332a;margin-top:10px" onclick="confirmPaid('UPI')">I Have Paid ✓ Confirm Order</button>
+   <button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back to details</button>`:''}
+   ${payMethod==='cod'?`<div style="background:#fff7ed;border:1px solid #fdba74;border-radius:10px;padding:12px;font-size:13px">Cash on Delivery — pay cash when your order arrives at:<br><b>${addr.addr}, ${addr.pin}</b><br>Phone: <b>+91 ${addr.phone}</b></div><button class="btn-full" style="background:#0b1d2a;color:#fff;margin-top:10px" onclick="confirmPaid('COD')">Place COD Order →</button><button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back to details</button>`:''}`;
+  }
  if(payStep===3){
   const o=JSON.parse(localStorage.getItem('last_order')||'{}');
-  B.innerHTML=`<div style="text-align:center;padding:10px"><div style="font-size:52px">✅</div><h3>Order Placed!</h3><p style="font-size:13px;color:#555">Order ID <b>${o.id||''}</b><br>Paid via <b>${o.pay||''}</b> — ${fmt(o.total||0)}</p><p style="font-size:12px;color:#666">Thanks ${user?.name||''}! Send token on WhatsApp to confirm. Location Surat.</p><button class="btn-full" style="background:#0b1d2a;color:#fff;margin-top:12px" onclick="closeModal('payModal');showPage('home')">Continue Shopping</button></div>`;
+  B.innerHTML=`<div style="text-align:center;padding:10px"><div style="font-size:52px">✅</div><h3>Order Placed!</h3><p style="font-size:13px;color:#555">Order ID <b>${o.id||''}</b><br>${o.pay==='COD'?'Cash on Delivery':'Paid via UPI'} — ${fmt(o.total||0)}</p><p style="font-size:12px;color:#666">Thanks ${o.name||''}! We will match your payment in our BHIM history by your number <b>+91 ${o.phone||''}</b> and ship to your address. Keep your payment screenshot ready.</p><button class="btn-full" style="background:#0b1d2a;color:#fff;margin-top:12px" onclick="closeModal('payModal');showPage('home')">Continue Shopping</button></div>`;
  }
 }
 function saveAddr(){
  const g=id=>document.getElementById(id).value.trim();
- addr={name:g('fName'),phone:g('fPhone'),pin:g('fPin'),addr:g('fAddr')};
- if(addr.name.length<2) return toast('Enter name');
- if(!/^[6-9]\d{9}$/.test(addr.phone)) return toast('Enter valid mobile');
- if(!/^\d{6}$/.test(addr.pin)) return toast('Enter 6-digit pincode');
- if(addr.addr.length<8) return toast('Enter full address');
+ addr={name:g('fName').replace(/\s+/g,' '),phone:g('fPhone').replace(/\D/g,''),pin:g('fPin').replace(/\D/g,''),addr:g('fAddr').replace(/\s+/g,' ')};
+ if(addr.name.length<2) return toast('❌ Please enter your full name');
+ if(!/^[6-9]\d{9}$/.test(addr.phone)) return toast('❌ Enter a valid 10-digit mobile number');
+ if(!/^\d{6}$/.test(addr.pin)) return toast('❌ Enter a valid 6-digit pincode');
+ if(addr.addr.length<10) return toast('❌ Enter your complete delivery address');
  localStorage.setItem('tmg_addr',JSON.stringify(addr));
  payStep=2;renderPay();
-}
-function payVia(app,withId){
- const link=upiLink(app);
- if(withId){
-  upiId=document.getElementById('upiId').value.trim();
-  if(!/^[\w.\-]{2,}@[a-zA-Z]{2,}/.test(upiId)) return toast('Enter valid UPI ID (name@bank)');
-  toast('Collect request sent to '+upiId+' — approve in your app');
-  return;
- }
- window.location.href=link;
- toast('Opening '+app+' with '+fmt(cartTotal())+'...');
 }
 function confirmPaid(method){
  const total=cartTotal();
  const id='TMG'+Date.now().toString().slice(-6);
- const order={id,total,pay:method,items:cart.reduce((s,c)=>s+c.qty,0),date:new Date().toLocaleString('en-IN'),addr,user};
+ const pf=document.getElementById('payFrom');
+ const order={id,total,pay:method,items:cart.reduce((s,c)=>s+c.qty,0),date:new Date().toLocaleString('en-IN'),name:addr.name,phone:addr.phone,pin:addr.pin,addr:addr.addr,payFrom:pf?pf.value.trim():''};
  const arr=JSON.parse(localStorage.getItem('tmg_orders')||'[]');arr.push(order);
  localStorage.setItem('tmg_orders',JSON.stringify(arr));
  localStorage.setItem('last_order',JSON.stringify(order));
  cart=[];renderCart();payStep=3;renderPay();
 }
-updateAcctBtn();
 renderCards();
 deepLink();
 </script>
