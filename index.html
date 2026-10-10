@@ -588,7 +588,7 @@ function renderPay(){
   <button class="btn-full" style="background:#0b1d2a;color:#fff" onclick="saveAddr()">Continue to Payment →</button>`;
  }
  if(payStep===2){
-  const qr=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiLink('upi'))}`;
+  const qr=`images/QR CODE.jpeg`;
   B.innerHTML=`<h4>Pay ${fmt(total)} — choose app</h4>
   <p style="font-size:12px;color:#666">Payee: <b>${MERCHANT_UPI}</b> (${MERCHANT_NAME}). On mobile tap an app — it opens with amount filled. On PC scan QR with any UPI app.</p>
   <div style="display:flex;gap:6px;margin:8px 0"><button class="btn-full ${payMethod==='upi'?'':' '}" style="background:${payMethod==='upi'?'#0b1d2a':'#eee'};color:${payMethod==='upi'?'#fff':'#111'}" onclick="payMethod='upi';renderPay()">UPI</button><button class="btn-full" style="background:${payMethod==='card'?'#0b1d2a':'#eee'};color:${payMethod==='card'?'#fff':'#111'}" onclick="payMethod='card';renderPay()">Card</button><button class="btn-full" style="background:${payMethod==='cod'?'#0b1d2a':'#eee'};color:${payMethod==='cod'?'#fff':'#111'}" onclick="payMethod='cod';renderPay()">COD</button></div>
@@ -601,7 +601,7 @@ function renderPay(){
    <div class="pay-app" onclick="payVia('amazon')"><div class="ic">🅰</div><b>Amazon Pay</b><small>amazonpay://</small></div>
    <div class="pay-app" onclick="payVia('upi')"><div class="ic">✨</div><b>Any UPI App</b><small>upi://</small></div>
   </div>
-  <div style="display:flex;gap:14px;align-items:center;background:#f8fafc;border:1px solid #e5e0d2;border-radius:12px;padding:12px"><img src="${qr}" width="120" height="120" style="border-radius:8px;border:1px solid #ddd" alt="UPI QR"><div style="font-size:12px">Scan with <b>GPay / PhonePe / Paytm / BHIM</b><br>Amount: <b>${fmt(total)}</b><br><span style="color:#666">UPI ID: ${MERCHANT_UPI}</span></div></div>
+  <div style="display:flex;gap:14px;align-items:center;background:#f8fafc;border:1px solid #e5e0d2;border-radius:12px;padding:12px"><img src="${qr}" width="150" height="150" style="border-radius:8px;border:1px solid #ddd" alt="Shop UPI QR"><div style="font-size:12px">Scan with <b>GPay / PhonePe / Paytm / BHIM</b><br>Amount: <b>${fmt(total)}</b><br><span style="color:#666">Your shop QR — pay & tap confirm below</span></div></div>
   <div style="display:flex;gap:8px;margin-top:10px"><input class="field" id="upiId" placeholder="yourname@okhdfc / @ybl / @paytm" value="${upiId}" style="margin:0"><button class="btn-full" style="width:auto;background:#0b1d2a;color:#fff;padding:12px 18px" onclick="payVia('upi',true)">Collect</button></div>
   <button class="btn-full" style="background:#2edcb5;color:#07332a;margin-top:10px" onclick="confirmPaid('UPI')">I Have Paid ✓ Confirm</button>
   <button style="border:0;background:none;color:#666;font-size:12px;margin-top:8px;cursor:pointer" onclick="setStep(1)">← Back to address</button>`:''}
